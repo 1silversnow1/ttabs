@@ -84,6 +84,7 @@ test('fills in the parts a case may be missing', () => {
     status: 'unchanged',
     passed: false,
     comment: '',
+    coveredBy: '',
   });
 });
 
@@ -93,6 +94,14 @@ test('carries a comment through', () => {
     cases: [{ id: 'TC-1', title: 'x', comment: 'flaky on retry' }],
   });
   assert.equal(state.cases[0].comment, 'flaky on retry');
+});
+
+test('carries the automated-test coverage through', () => {
+  const state = normalizeState({
+    task: 'ACME-1',
+    cases: [{ id: 'TC-1', title: 'x', coveredBy: 'e2e: spec.ts › "does the thing"' }],
+  });
+  assert.equal(state.cases[0].coveredBy, 'e2e: spec.ts › "does the thing"');
 });
 
 test('defaults a missing comment to an empty string', () => {

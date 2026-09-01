@@ -16,6 +16,7 @@ const normalizeCase = (raw) => ({
   status: STATUSES.has(raw.status) ? raw.status : 'unchanged',
   passed: raw.passed === true,
   comment: typeof raw.comment === 'string' ? raw.comment : '',
+  coveredBy: typeof raw.coveredBy === 'string' ? raw.coveredBy : '',
 });
 
 const normalizeDiscrepancy = (raw) => ({

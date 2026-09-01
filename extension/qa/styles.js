@@ -160,6 +160,7 @@ export const PANEL_CSS = `
   }
   .details ol { margin: 0 0 5px; padding-left: 18px; }
   .details .expected { color: #222; }
+  .details .covered { color: #5a6b7a; font-size: 12px; margin-top: 4px; }
 
   .error { color: #b00020; font-size: 13px; margin-left: 26px; }
 

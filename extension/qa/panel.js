@@ -25,6 +25,11 @@ const details = (item) => {
 
   if (item.expectedResult) box.append(el('div', 'expected', `→ ${item.expectedResult}`));
 
+  // Which automated test already covers this case. Without it the panel gives no
+  // way to tell a case that still needs a human from one that is only listed for
+  // the record, and every round gets re-run by hand.
+  if (item.coveredBy) box.append(el('div', 'covered', item.coveredBy));
+
   return box;
 };
 
