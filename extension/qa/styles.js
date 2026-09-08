@@ -151,6 +151,48 @@ export const PANEL_CSS = `
   }
   .badge.new { background: #e3f2e3; color: #2b6b2b; }
   .badge.updated { background: #fff3cd; color: #7a5c00; }
+  .badge.full { background: #e3f2e3; color: #2b6b2b; }
+  .badge.partial { background: #fff3cd; color: #7a5c00; }
+
+  .count .hands-on {
+    color: #b00020;
+    font-weight: 600;
+    margin-left: 4px;
+  }
+
+  .hide-covered {
+    display: block;
+    width: 100%;
+    margin-bottom: 7px;
+    padding: 5px 7px;
+    font: inherit;
+    font-size: 13px;
+    color: #444;
+    background: #f4f4f4;
+    border: 1px solid #d0d0d0;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .hide-covered.active {
+    background: #e3f2e3;
+    border-color: #2b6b2b;
+    color: #2b6b2b;
+  }
+
+  .criteria {
+    border-top: 1px solid #e6e6e6;
+    margin-top: 7px;
+    padding: 7px 12px;
+    background: #fbfbfb;
+  }
+  .criteria h2 { margin: 0 0 5px; font-size: 13px; text-transform: uppercase; color: #555; }
+  .criterion { margin-bottom: 7px; display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+  .criterion .summary { font-weight: 600; flex: 1 1 auto; }
+  .criterion .meta { color: #666; font-size: 13px; flex-basis: 100%; }
+
+  .badge.evidence-test, .badge.evidence-drive { background: #e3f2e3; color: #2b6b2b; }
+  .badge.evidence-manual { background: #fff3cd; color: #7a5c00; }
+  .badge.evidence-deferred { background: #eee; color: #888; }
 
   .details {
     margin: 5px 0 7px 26px;

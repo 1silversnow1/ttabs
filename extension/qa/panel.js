@@ -1,7 +1,7 @@
 // The panel's DOM, and nothing else — it renders what it is given and reports
 // clicks back. Deciding what to do with a click is session.js's business.
 
-import { groupByArea } from '../lib/qa-cases.js';
+import { groupByArea, handsOnLeftCount } from '../lib/qa-cases.js';
 import { PANEL_CSS } from './styles.js';
 import { makeDraggable } from '../lib/draggable.js';
 
@@ -56,6 +56,11 @@ const caseRow = (item, onToggle, foldOverrides, commentText, editedIds, onCommen
   row.append(checkbox, title);
   if (item.status === 'new' || item.status === 'updated') {
     row.append(el('span', `badge ${item.status}`, item.status));
+  }
+  if (item.coverage === 'full') {
+    row.append(el('span', 'badge full', 'covered'));
+  } else if (item.coverage === 'partial') {
+    row.append(el('span', 'badge partial', 'partial'));
   }
 
   // A draft that now matches the server's echo has already landed there —
@@ -132,6 +137,25 @@ const discrepancySection = (discrepancies) => {
   return box;
 };
 
+const criteriaSection = (criteria) => {
+  const box = el('section', 'criteria');
+  box.append(el('h2', null, 'acceptance criteria'));
+
+  for (const item of criteria) {
+    const entry = el('div', 'criterion');
+    entry.append(el('div', 'summary', `${item.id} — ${item.text}`));
+    if (item.evidence) {
+      entry.append(el('span', `badge evidence-${item.evidence}`, item.evidence));
+    }
+    if (item.evidence === 'deferred' && item.reason) {
+      entry.append(el('div', 'meta', item.reason));
+    }
+    box.append(entry);
+  }
+
+  return box;
+};
+
 export const createPanel = ({ onToggle, onComment, onCommentCommit, onFinish }) => {
   const host = el('div');
   host.id = HOST_ID;
@@ -158,6 +182,10 @@ export const createPanel = ({ onToggle, onComment, onCommentCommit, onFinish }) 
   const commentText = new Map();
   const editedIds = new Set();
 
+  // UI-only, like `collapsed` — never sent to the server, reset on reload.
+  let hideCovered = false;
+  let lastState = null;
+
   const style = el('style', null, PANEL_CSS);
   const panel = el('div', 'panel');
   // The header itself is the collapse control (a real button, so it is
@@ -172,6 +200,9 @@ export const createPanel = ({ onToggle, onComment, onCommentCommit, onFinish }) 
   const body = el('div', 'body');
   const foot = el('div', 'foot');
   const done = el('button', 'done', 'Done');
+  const hideCoveredToggle = el('button', 'hide-covered', 'Hide covered');
+  hideCoveredToggle.type = 'button';
+  hideCoveredToggle.setAttribute('aria-pressed', 'false');
   const finishError = el('div', 'error finish-error');
   finishError.hidden = true;
 
@@ -198,17 +229,31 @@ export const createPanel = ({ onToggle, onComment, onCommentCommit, onFinish }) 
   });
 
   done.addEventListener('click', onFinish);
+  hideCoveredToggle.addEventListener('click', () => {
+    hideCovered = !hideCovered;
+    hideCoveredToggle.classList.toggle('active', hideCovered);
+    hideCoveredToggle.setAttribute('aria-pressed', String(hideCovered));
+    if (lastState) panelApi.render(lastState);
+  });
   head.append(task, count, chevron);
-  foot.append(finishError, done);
+  foot.append(finishError, hideCoveredToggle, done);
   panel.append(head, body, foot);
   root.append(style, panel);
   document.documentElement.append(host);
 
-  return {
+  const panelApi = {
     render(state) {
+      lastState = state;
       task.textContent = state.task;
       const passed = state.cases.filter((c) => c.passed).length;
-      count.textContent = `${passed}/${state.cases.length}`;
+      const handsOnLeft = handsOnLeftCount(state.cases);
+      count.replaceChildren(document.createTextNode(`${passed}/${state.cases.length}`));
+      if (handsOnLeft > 0) {
+        count.append(
+          document.createTextNode(' · '),
+          el('span', 'hands-on', `${handsOnLeft} hands-on left`),
+        );
+      }
 
       const knownIds = new Set(state.cases.map((c) => c.id));
       for (const id of foldOverrides.keys()) {
@@ -238,12 +283,15 @@ export const createPanel = ({ onToggle, onComment, onCommentCommit, onFinish }) 
 
       body.replaceChildren();
       for (const group of groupByArea(state.cases)) {
+        const visible = hideCovered ? group.cases.filter((c) => c.coverage !== 'full') : group.cases;
+        if (visible.length === 0) continue;
         body.append(el('div', 'area', group.area));
-        for (const item of group.cases) {
+        for (const item of visible) {
           body.append(caseRow(item, onToggle, foldOverrides, commentText, editedIds, onComment, onCommentCommit));
         }
       }
       if (state.discrepancies.length > 0) body.append(discrepancySection(state.discrepancies));
+      if (state.criteria.length > 0) body.append(criteriaSection(state.criteria));
       body.scrollTop = scrollTop;
 
       if (typing) {
@@ -291,4 +339,6 @@ export const createPanel = ({ onToggle, onComment, onCommentCommit, onFinish }) 
       host.remove();
     },
   };
+
+  return panelApi;
 };
