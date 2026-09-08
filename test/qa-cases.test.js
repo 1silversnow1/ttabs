@@ -239,6 +239,15 @@ test('defaults a missing or unrecognized criterion evidence to an empty string',
   assert.deepEqual(state.criteria.map((c) => c.evidence), ['', '']);
 });
 
+test('accepts "agent" as a recognized criterion evidence value', () => {
+  const state = normalizeState({
+    task: 'ACME-1',
+    cases: [],
+    criteria: [{ id: 'AC-1', text: 'x', evidence: 'agent' }],
+  });
+  assert.equal(state.criteria[0].evidence, 'agent');
+});
+
 test('defaults criteria to an empty array when the key is absent', () => {
   const state = normalizeState({ task: 'ACME-1', cases: [] });
   assert.deepEqual(state.criteria, []);

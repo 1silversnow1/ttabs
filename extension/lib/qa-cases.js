@@ -7,7 +7,7 @@ export const UNGROUPED = 'other';
 
 const STATUSES = new Set(['new', 'updated', 'unchanged', 'outdated']);
 const COVERAGE_STATES = new Set(['full', 'partial', 'none']);
-const EVIDENCE_TYPES = new Set(['test', 'drive', 'manual', 'deferred']);
+const EVIDENCE_TYPES = new Set(['test', 'drive', 'agent', 'manual', 'deferred']);
 
 const normalizeCase = (raw) => ({
   id: raw.id,

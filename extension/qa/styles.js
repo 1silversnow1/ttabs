@@ -190,7 +190,7 @@ export const PANEL_CSS = `
   .criterion .summary { font-weight: 600; flex: 1 1 auto; }
   .criterion .meta { color: #666; font-size: 13px; flex-basis: 100%; }
 
-  .badge.evidence-test, .badge.evidence-drive { background: #e3f2e3; color: #2b6b2b; }
+  .badge.evidence-test, .badge.evidence-drive, .badge.evidence-agent { background: #e3f2e3; color: #2b6b2b; }
   .badge.evidence-manual { background: #fff3cd; color: #7a5c00; }
   .badge.evidence-deferred { background: #eee; color: #888; }
 

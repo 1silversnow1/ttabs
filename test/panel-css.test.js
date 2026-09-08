@@ -54,6 +54,7 @@ const PANEL_CLASSES = [
   'criterion',
   'evidence-test',
   'evidence-drive',
+  'evidence-agent',
   'evidence-manual',
   'evidence-deferred',
   'done',
