@@ -6,6 +6,7 @@ import {
   normalizeState,
   groupByArea,
   uncheckedCount,
+  handsOnLeftCount,
   applyPassed,
   matchesTask,
   finishWarning,
@@ -63,7 +64,7 @@ test('rejects a payload that is not a session', () => {
 
 test('accepts a session with no cases yet', () => {
   const state = normalizeState({ task: 'ACME-1', cases: [] });
-  assert.deepEqual(state, { task: 'ACME-1', cases: [], discrepancies: [] });
+  assert.deepEqual(state, { task: 'ACME-1', cases: [], discrepancies: [], criteria: [] });
 });
 
 test('drops cases without an id or a title', () => {
@@ -85,6 +86,7 @@ test('fills in the parts a case may be missing', () => {
     passed: false,
     comment: '',
     coveredBy: '',
+    coverage: 'none',
   });
 });
 
@@ -183,4 +185,74 @@ test('warns in the singular for one unchecked case', () => {
 test('does not warn when everything is checked', () => {
   const state = normalizeState({ task: 'ACME-1', cases: [{ id: 'TC-1', title: 'x', passed: true }] });
   assert.equal(finishWarning(state.cases), null);
+});
+
+test('carries a recognized coverage value through', () => {
+  const state = normalizeState({
+    task: 'ACME-1',
+    cases: [
+      { id: 'TC-1', title: 'a', coverage: 'full' },
+      { id: 'TC-2', title: 'b', coverage: 'partial' },
+      { id: 'TC-3', title: 'c', coverage: 'none' },
+    ],
+  });
+  assert.deepEqual(state.cases.map((c) => c.coverage), ['full', 'partial', 'none']);
+});
+
+test('defaults an unrecognized or missing coverage value to "none"', () => {
+  const state = normalizeState({
+    task: 'ACME-1',
+    cases: [
+      { id: 'TC-1', title: 'a', coverage: 'covered somehow' },
+      { id: 'TC-2', title: 'b' },
+    ],
+  });
+  assert.deepEqual(state.cases.map((c) => c.coverage), ['none', 'none']);
+});
+
+test('normalizes a well-formed criteria array', () => {
+  const state = normalizeState({
+    task: 'ACME-1',
+    cases: [],
+    criteria: [{ id: 'AC-1', text: 'a doc can be created', evidence: 'manual', reason: '' }],
+  });
+  assert.deepEqual(state.criteria, [
+    { id: 'AC-1', text: 'a doc can be created', evidence: 'manual', reason: '' },
+  ]);
+});
+
+test('drops a criterion missing an id or text', () => {
+  const state = normalizeState({
+    task: 'ACME-1',
+    cases: [],
+    criteria: [{ text: 'no id' }, { id: 'AC-2' }, { id: 'AC-3', text: 'kept' }],
+  });
+  assert.deepEqual(state.criteria.map((c) => c.id), ['AC-3']);
+});
+
+test('defaults a missing or unrecognized criterion evidence to an empty string', () => {
+  const state = normalizeState({
+    task: 'ACME-1',
+    cases: [],
+    criteria: [{ id: 'AC-1', text: 'x', evidence: 'made up' }, { id: 'AC-2', text: 'y' }],
+  });
+  assert.deepEqual(state.criteria.map((c) => c.evidence), ['', '']);
+});
+
+test('defaults criteria to an empty array when the key is absent', () => {
+  const state = normalizeState({ task: 'ACME-1', cases: [] });
+  assert.deepEqual(state.criteria, []);
+});
+
+test('handsOnLeftCount counts unpassed cases that are not fully covered', () => {
+  const state = normalizeState({
+    task: 'ACME-1',
+    cases: [
+      { id: 'TC-1', title: 'a', coverage: 'full', passed: false },
+      { id: 'TC-2', title: 'b', coverage: 'partial', passed: false },
+      { id: 'TC-3', title: 'c', coverage: 'none', passed: false },
+      { id: 'TC-4', title: 'd', coverage: 'none', passed: true },
+    ],
+  });
+  assert.equal(handsOnLeftCount(state.cases), 2);
 });

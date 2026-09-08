@@ -6,6 +6,8 @@
 export const UNGROUPED = 'other';
 
 const STATUSES = new Set(['new', 'updated', 'unchanged', 'outdated']);
+const COVERAGE_STATES = new Set(['full', 'partial', 'none']);
+const EVIDENCE_TYPES = new Set(['test', 'drive', 'manual', 'deferred']);
 
 const normalizeCase = (raw) => ({
   id: raw.id,
@@ -17,6 +19,7 @@ const normalizeCase = (raw) => ({
   passed: raw.passed === true,
   comment: typeof raw.comment === 'string' ? raw.comment : '',
   coveredBy: typeof raw.coveredBy === 'string' ? raw.coveredBy : '',
+  coverage: COVERAGE_STATES.has(raw.coverage) ? raw.coverage : 'none',
 });
 
 const normalizeDiscrepancy = (raw) => ({
@@ -26,12 +29,22 @@ const normalizeDiscrepancy = (raw) => ({
   implemented: typeof raw.implemented === 'string' ? raw.implemented : '',
 });
 
+const normalizeCriterion = (raw) => ({
+  id: raw.id,
+  text: typeof raw.text === 'string' ? raw.text : '',
+  evidence: EVIDENCE_TYPES.has(raw.evidence) ? raw.evidence : '',
+  reason: typeof raw.reason === 'string' ? raw.reason : '',
+});
+
 const usableCase = (raw) => raw && typeof raw.id === 'string' && typeof raw.title === 'string';
+
+const usableCriterion = (raw) => raw && typeof raw.id === 'string' && typeof raw.text === 'string';
 
 export const normalizeState = (raw) => {
   if (!raw || typeof raw.task !== 'string' || !Array.isArray(raw.cases)) return null;
 
   const discrepancies = Array.isArray(raw.discrepancies) ? raw.discrepancies : [];
+  const criteria = Array.isArray(raw.criteria) ? raw.criteria : [];
 
   return {
     task: raw.task,
@@ -39,6 +52,7 @@ export const normalizeState = (raw) => {
     discrepancies: discrepancies
       .filter((d) => d && typeof d.id === 'string')
       .map(normalizeDiscrepancy),
+    criteria: criteria.filter(usableCriterion).map(normalizeCriterion),
   };
 };
 
@@ -53,6 +67,8 @@ export const groupByArea = (cases) => {
 };
 
 export const uncheckedCount = (cases) => cases.filter((c) => !c.passed).length;
+
+export const handsOnLeftCount = (cases) => cases.filter((c) => c.coverage !== 'full' && !c.passed).length;
 
 export const applyPassed = (state, id, passed) => ({
   ...state,
