@@ -4,11 +4,8 @@
 // This file only orchestrates: where the statuses come from is `providers/`,
 // what to write is `lib/plan.js`.
 
-import { trackedGroups, keyForTab } from './chrome/groups.js';
+import { trackedGroups } from './chrome/groups.js';
 import { rememberActiveTab, restoreFocus } from './chrome/focus.js';
-import { QA_MESSAGE } from './qa/config.js';
-import { TASK_KEY_MESSAGE } from './lib/task-key.js';
-import { call } from './qa/client.js';
 import { readSite, readTitles, writeTitles } from './chrome/store.js';
 import { planUpdates } from './lib/plan.js';
 import { fetchStatuses } from './providers/jira.js';
@@ -72,27 +69,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     restoreFocus(message.windowId)
       .catch((e) => console.warn('[task-tabs]', e))
       .finally(() => sendResponse(true));
-    return true;
-  }
-
-  if (message?.type === TASK_KEY_MESSAGE) {
-    // A message from anywhere other than a tab (the control page, say) has no
-    // group to resolve.
-    if (!sender.tab) {
-      sendResponse(null);
-      return false;
-    }
-    keyForTab(sender.tab.id).then(sendResponse);
-    return true;
-  }
-
-  if (message?.type === QA_MESSAGE) {
-    // No server running is the normal state, not an error worth logging — the
-    // content script polls for one and tells a dead server (fetch itself
-    // fails, landing here) apart from a real "no session" (a clean 404).
-    call(message)
-      .then(sendResponse)
-      .catch((e) => sendResponse({ error: String(e?.message ?? e) }));
     return true;
   }
 

@@ -3,27 +3,17 @@
   "name": "Task Tabs",
   "version": "1.5",
   "description": "Groups browser tabs by Jira task, driven from the command line.",
-  "permissions": ["tabs", "tabGroups", "alarms", "storage"],
+  "permissions": [
+    "tabs",
+    "tabGroups",
+    "alarms",
+    "storage"
+  ],
   "host_permissions": [
-    "https://*.atlassian.net/*",
-    "http://localhost/*",
-    "http://127.0.0.1/*"
+    "https://*.atlassian.net/*"
   ],
   "background": {
     "service_worker": "sync.js",
     "type": "module"
-  },
-  "content_scripts": [
-    {
-      "matches": ["http://localhost/*", "http://127.0.0.1/*"],
-      "js": ["qa/boot.js"],
-      "run_at": "document_idle"
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["qa/*.js", "lib/qa-cases.js", "lib/qa-pending.js", "lib/task-key.js", "lib/draggable.js"],
-      "matches": ["http://localhost/*", "http://127.0.0.1/*"]
-    }
-  ]
+  }
 }

@@ -27,61 +27,6 @@ from `open`, so `task-tab` opens the extension's own control page with query
 parameters. That page performs the operation and closes itself. No native
 messaging host, no local server. The only background piece is the status sync.
 
-## QA checklist panel
-
-The extension also carries a small optional widget: a floating checklist panel
-that appears on `localhost` pages whenever a local QA server is running on
-port `47823`, and disappears when it is not.
-
-It expects that server to answer three endpoints:
-
-| Request | Answer |
-| --- | --- |
-| `GET /api/qa/state` | `200` with `{ task, cases, discrepancies }`, or `404` when no session is running |
-| `POST /api/qa/case/:id` — `{"passed": true}` and/or `{"comment": "…"}`, both optional but at least one required (`400` otherwise) | `204` |
-| `POST /api/qa/finish` — `{"note": "…"}` | `200 {"ok": true}` |
-
-A case is `{ id, title, steps, expectedResult, area, status, passed, comment }`,
-where `status` is one of `new`, `updated`, `unchanged`, `outdated`; an outdated
-case is shown struck through rather than hidden. A discrepancy is
-`{ id, summary, source, implemented }` and is displayed read-only.
-
-Each case also takes a free-text comment, written in the panel and sent to the
-server as it is typed. The server keeps it beside that case and reflects it in
-the next state it hands back, so the panel shows what the server has on the
-next render.
-
-A panel belongs to the task of the tab group its tab sits in: with several
-tasks open at once, one task's checklist never appears over another task's app,
-and a tab in no group shows nothing and makes no requests.
-
-Serving that is somebody else's job — the extension is only the client. With
-nothing listening on the port, the panel never appears and the rest of the
-extension is unaffected.
-
-When it does not appear and you want to know why, set the page console's level
-filter to **Verbose**: the widget explains itself there — whether its content
-script loaded, which task it resolved for the tab, and whether the server
-answered. It says nothing at the default level, since most tasks never run a
-checklist server and a widget should not narrate its idleness into someone
-else's console.
-
-## The server behind the panel
-
-The panel is only a client. The extension ships no server: the checklist comes
-from something listening on `47823`, on the developer's own machine. With nothing
-there, the panel stays away and the rest of the extension carries on as if it did
-not exist — no error, no placeholder, nothing in the console at the default
-level.
-
-That also means nobody has to use the server behind it today. Anyone can write
-their own — in any language, over an afternoon — and the panel will pick it up.
-What it requires of that server is written down in
-[docs/qa-server-contract.md](./docs/qa-server-contract.md): the routes, the
-fields, which of them are optional, what the widget does with an answer it does
-not recognise, and the handful of promises a server has to keep.
-
-
 ## Install
 
 ```bash

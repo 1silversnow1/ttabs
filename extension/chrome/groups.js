@@ -16,19 +16,3 @@ export const findGroup = async (key) => {
   const tracked = await trackedGroups();
   return tracked.find((t) => t.key === key)?.group ?? null;
 };
-
-// A content script cannot see tabs or groups, so the service worker resolves
-// a tab's task key on its behalf. `chrome.tabs.get`/`chrome.tabGroups.get`
-// reject once the tab or group has gone away — a closed tab racing this
-// lookup, say — so any failure here just means "no key", not an error to
-// surface.
-export const keyForTab = async (tabId) => {
-  try {
-    const tab = await chrome.tabs.get(tabId);
-    if (tab.groupId === chrome.tabGroups.TAB_GROUP_ID_NONE) return null;
-    const group = await chrome.tabGroups.get(tab.groupId);
-    return keyFromTitle(group.title ?? '');
-  } catch {
-    return null;
-  }
-};
