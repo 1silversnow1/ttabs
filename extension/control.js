@@ -5,6 +5,7 @@
 
 import { findGroup } from './chrome/groups.js';
 import { writeSite } from './chrome/store.js';
+import { pickPartner, rightHalf } from './lib/split.js';
 
 // Chrome's own enum, used to reject a bad `--color` before it throws inside
 // tabGroups.update. Which colour a task gets is decided by `task-color`, so the
@@ -13,17 +14,44 @@ const CHROME_COLORS = new Set([
   'grey', 'blue', 'red', 'yellow', 'green', 'pink', 'purple', 'cyan',
 ]);
 
-const add = async (key, url, color, focus) => {
+// Splitting is a nicety on top of a tab that already exists in the group: any
+// failure here — Chrome older than 155, tabs that cannot be paired — leaves the
+// tab as a plain one rather than losing the page.
+const splitBeside = async (partner, tab) => {
+  try {
+    if (tab.index !== partner.index + 1) {
+      await chrome.tabs.move(tab.id, { index: partner.index + 1 });
+    }
+    await chrome.tabs.createSplit([partner.id, tab.id]);
+  } catch (e) {
+    console.warn('[task-tabs] split skipped:', e);
+  }
+};
+
+const activate = async (tab, focus) => {
+  if (!focus) return;
+  await chrome.tabs.update(tab.id, { active: true });
+  await chrome.windows.update(tab.windowId, { focused: true });
+};
+
+const add = async (key, url, color, focus, split) => {
   const group = await findGroup(key);
 
   if (group) {
     const tabs = await chrome.tabs.query({ groupId: group.id });
     const existing = tabs.find((t) => t.url === url || t.pendingUrl === url);
     if (existing) {
-      if (focus) {
-        await chrome.tabs.update(existing.id, { active: true });
-        await chrome.windows.update(existing.windowId, { focused: true });
-      }
+      await activate(existing, focus);
+      return;
+    }
+
+    const partner = pickPartner(tabs, split);
+    const half = partner && rightHalf(tabs, partner);
+    if (half) {
+      // Replacing the page keeps the pair, its place in the group and the
+      // left half untouched.
+      await chrome.tabs.update(half.id, { url });
+      await activate(half, focus);
       return;
     }
   }
@@ -38,6 +66,15 @@ const add = async (key, url, color, focus) => {
     const properties = { title: key };
     if (CHROME_COLORS.has(color)) properties.color = color;
     await chrome.tabGroups.update(groupId, properties);
+  }
+
+  if (group && (split.last || split.prefix)) {
+    const tabs = await chrome.tabs.query({ groupId: group.id });
+    const partner = pickPartner(tabs.filter((t) => t.id !== tab.id), split);
+    if (partner) {
+      const created = await chrome.tabs.get(tab.id);
+      await splitBeside(partner, created);
+    }
   }
 
   // Without this the freshly created group would sit prefix-less until the next
@@ -60,7 +97,10 @@ const collapse = async (key) => {
 const ACTIONS = {
   add: {
     required: ['group', 'url'],
-    run: (p) => add(p.get('group'), p.get('url'), p.get('color'), p.get('focus') === '1'),
+    run: (p) => add(p.get('group'), p.get('url'), p.get('color'), p.get('focus') === '1', {
+      last: p.get('split') === '1',
+      prefix: p.get('splitWith') ?? '',
+    }),
   },
   close: {
     required: ['group'],

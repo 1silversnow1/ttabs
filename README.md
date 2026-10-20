@@ -74,6 +74,23 @@ Adding a URL already in the group is a no-op instead of opening a duplicate.
 `task-tab` is a deliberate silent no-op in general — it exits 0 without output
 when it cannot work, so a script may call it unconditionally.
 
+### Split view
+
+Chrome 155 can show two tabs side by side. `--split` opens the new tab as the
+right half of a split view, beside the group's last tab; `--split-with` pairs it
+with the first tab whose URL starts with the given prefix instead:
+
+```bash
+task-tab add ACME-1234 http://localhost:3000                      # the app
+task-tab --split add ACME-1234 http://localhost:4000/checklist    # beside it
+task-tab --split-with http://localhost:3000 add ACME-1234 http://localhost:4000/checklist
+```
+
+If the partner already sits in a split view, the new URL replaces the page in the
+pair's right half. If there is no partner, or Chrome cannot split, the page opens
+as a plain tab in the group. Both flags apply to `add` only and are a silent
+no-op like the rest of the CLI.
+
 ### Nothing steals your focus
 
 Tabs are arranged in the background. `open -g` keeps Chrome from coming to the

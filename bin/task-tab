@@ -3,12 +3,19 @@
 #
 #   task-tab add ACME-1234 https://example.com/issue
 #   task-tab --focus add ACME-1234 https://example.com/issue   # jump to the tab
+#   task-tab --split add ACME-1234 http://localhost:4000/qa   # beside the last tab
+#   task-tab --split-with http://localhost:3000 add ACME-1234 http://localhost:4000/qa
 #   task-tab close ACME-1234
 #   task-tab collapse ACME-1234
 #   task-tab site https://acme.atlassian.net
 #
 # Nothing steals focus unless --focus is given: tabs appear in the background and
 # the tab you were reading stays selected.
+#
+# --split / --split-with open the new tab as a Chrome split view (Chrome 155+)
+# beside the group's last tab, or beside the first tab whose URL starts with the
+# given prefix. A pair already split gets its right half navigated to the new
+# URL. With no such tab, or no split support, the page opens as a plain tab.
 #
 # Drives the "Task Tabs" Chrome extension by opening its control page — Chrome
 # accepts chrome-extension:// URLs from `open`, so no daemon is involved.
@@ -30,6 +37,8 @@ task_color="$bin_dir/task-color"
 
 color_override=""
 focus=""
+split=""
+split_with=""
 while :; do
     case "${1:-}" in
         --color)
@@ -41,6 +50,13 @@ while :; do
         --focus)
             focus="1"
             shift ;;
+        --split)
+            split="1"
+            shift ;;
+        --split-with)
+            split_with="${2:-}"
+            [ -n "$split_with" ] || { echo "usage: task-tab --split-with <url-prefix> add <group> <url>" >&2; exit 2; }
+            shift 2 ;;
         *) break ;;
     esac
 done
@@ -55,11 +71,17 @@ case "$action" in
             echo "usage: task-tab add <group> <url>" >&2; exit 2
         fi ;;
     close|collapse)
+        if [ -n "$split$split_with" ]; then
+            echo "usage: --split and --split-with apply to add only" >&2; exit 2
+        fi
         [ -n "$group" ] || { echo "usage: task-tab $action <group>" >&2; exit 2; } ;;
     site)
+        if [ -n "$split$split_with" ]; then
+            echo "usage: --split and --split-with apply to add only" >&2; exit 2
+        fi
         [ -n "$group" ] || { echo "usage: task-tab site <https://your.atlassian.net>" >&2; exit 2; } ;;
     *)
-        echo "usage: task-tab [--color <name>] [--focus] <add|close|collapse|site> <group|url> [url]" >&2; exit 2 ;;
+        echo "usage: task-tab [--color <name>] [--focus] [--split | --split-with <url-prefix>] <add|close|collapse|site> <group|url> [url]" >&2; exit 2 ;;
 esac
 
 id_file="$state_dir/extension-id"
@@ -77,6 +99,11 @@ fi
 control="chrome-extension://$ext_id/control.html?action=$action&group=$(encode "$group")"
 [ -n "$url" ] && control="$control&url=$(encode "$url")"
 [ -n "$focus" ] && control="$control&focus=1"
+if [ -n "$split_with" ]; then
+    control="$control&splitWith=$(encode "$split_with")"
+elif [ -n "$split" ]; then
+    control="$control&split=1"
+fi
 
 # The colour is assigned by task-color, not by the extension, so the terminal
 # label and the browser group always agree on it.
