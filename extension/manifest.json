@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Task Tabs",
-  "version": "1.5",
+  "version": "1.6",
   "description": "Groups browser tabs by Jira task, driven from the command line.",
   "permissions": [
     "alarms",
