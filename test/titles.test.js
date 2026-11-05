@@ -48,6 +48,12 @@ test('still reads nothing out of a title without a key', () => {
   assert.equal(keyFromTitle('lowercase-2253'), null);
 });
 
+test('reads a release version tag as its own key', () => {
+  assert.equal(keyFromTitle('v2026.08.31.01'), 'v2026.08.31.01');
+  assert.equal(keyFromTitle('v2026.08.31.01 [2]'), 'v2026.08.31.01');
+  assert.equal(keyFromTitle('DEV|v2026.08.31.01'), 'v2026.08.31.01');
+});
+
 test('owns a bare key and its own prefixes', () => {
   assert.equal(isOurTitle('ACME-2253', 'ACME-2253'), true);
   assert.equal(isOurTitle('DEV|ACME-2253', 'ACME-2253'), true);
