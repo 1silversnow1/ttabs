@@ -4,16 +4,24 @@
   "version": "1.5",
   "description": "Groups browser tabs by Jira task, driven from the command line.",
   "permissions": [
-    "tabs",
-    "tabGroups",
     "alarms",
-    "storage"
+    "sidePanel",
+    "storage",
+    "tabGroups",
+    "tabs"
   ],
   "host_permissions": [
-    "https://*.atlassian.net/*"
+    "https://*.atlassian.net/*",
+    "http://127.0.0.1:47824/*"
   ],
   "background": {
     "service_worker": "sync.js",
     "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "Task phases"
   }
 }

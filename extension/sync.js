@@ -9,6 +9,7 @@ import { rememberActiveTab, restoreFocus } from './chrome/focus.js';
 import { readSite, readTitles, writeTitles } from './chrome/store.js';
 import { planUpdates } from './lib/plan.js';
 import { fetchStatuses } from './providers/jira.js';
+import './panel.js';
 
 const ALARM = 'jira-status-sync';
 const PERIOD_MINUTES = 5;
