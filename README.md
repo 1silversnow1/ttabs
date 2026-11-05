@@ -174,6 +174,12 @@ nobody has asked about in longest — the one most likely to be finished. Colour
 therefore repeat only while you genuinely have more than six tasks in flight, and
 the store never grows past the palette.
 
+Every colour change (first pick, takeover, `--set`, `--release`) is also
+mirrored to the Vchasno hub (`hub.mjs task-color <key> <colour|none>`), so the
+task map shows it. The hub path comes from `VCHASNO_HUB`; when the file is
+missing, the call is skipped. It runs in the background, its output is discarded,
+and a failing hub never changes what `task-color` prints or its exit code.
+
 The palette is the six Chrome tab-group colours with a solid emoji square: blue,
 green, purple, yellow, red, grey — in that order, so grey is the last resort.
 Chrome's pink and cyan are skipped: their squares are Unicode 15 and render

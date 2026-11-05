@@ -29,6 +29,24 @@ self="$(python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$0")"
 
 store="$state_dir/colors"
 
+hub="${VCHASNO_HUB:-/Users/v.friptu/WebstormProjects/vchasno/vchasno-harness/engine/scripts/hub.mjs}"
+
+# Mirrors every colour change into the Vchasno hub, which shows it on the task
+# map. Best effort and detached: a missing, locked or slow hub must never change
+# what this prints, its exit code, or how fast a terminal tab opens. Pairs run in
+# order in one background job, so a takeover's `none` lands before the new key.
+#   hub_report KEY COLOUR [KEY COLOUR ...]   (COLOUR "none" forgets the key)
+hub_report() {
+    [ -f "$hub" ] || return 0
+    command -v node >/dev/null 2>&1 || return 0
+    (
+        while [ $# -ge 2 ]; do
+            node --disable-warning=ExperimentalWarning "$hub" task-color "$1" "$2" || true
+            shift 2
+        done
+    ) </dev/null >/dev/null 2>&1 &
+}
+
 emoji_for() {
     local want="$1" i
     for i in "${!NAMES[@]}"; do
@@ -80,14 +98,17 @@ assign() {
         esac
     done
 
+    local report=()
     if [ -z "$pick" ]; then
         local stalest
         stalest="$(stalest_file)"
         pick="$(tr -d '[:space:]' < "$stalest")"
         rm -f "$stalest"
+        report=("$(basename "$stalest")" none)
     fi
 
     printf '%s\n' "$pick" > "$file"
+    hub_report ${report[@]+"${report[@]}"} "$key" "$pick"
     printf '%s' "$pick"
 }
 
@@ -114,12 +135,14 @@ key="${1:-}"
 
 if [ "$mode" = "release" ]; then
     rm -f "$store/$key"
+    hub_report "$key" none
     exit 0
 fi
 
 if [ "$mode" = "set" ]; then
     mkdir -p "$store"
     printf '%s\n' "$forced" > "$store/$key"
+    hub_report "$key" "$forced"
     printf '%s %s\n' "$forced" "$(emoji_for "$forced")"
     exit 0
 fi

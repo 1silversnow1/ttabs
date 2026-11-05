@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, readdirSync, utimesSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, readdirSync, utimesSync, existsSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,12 +12,39 @@ const taskColor = path.join(here, '..', 'bin', 'task-color');
 // The palette, in the order task-color hands it out.
 const PALETTE = ['blue', 'green', 'purple', 'yellow', 'red', 'grey'];
 
-const withStore = (body) => {
+// The stub hub appends each call's arguments as one line, so a test can read
+// back what task-color reported. Tests never reach the real hub.
+const STUB_HUB = `
+import { appendFileSync } from 'node:fs';
+appendFileSync(process.env.HUB_LOG, process.argv.slice(2).join(' ') + '\\n');
+`;
+
+const withStore = (body, { hub = 'stub' } = {}) => {
   const home = mkdtempSync(path.join(tmpdir(), 'ttabs-'));
-  const run = (...args) =>
-    execFileSync(taskColor, args, { env: { ...process.env, TASK_TABS_HOME: home } })
-      .toString()
-      .trim();
+  const hubLog = path.join(home, 'hub.log');
+  let hubPath = path.join(home, 'missing-hub.mjs');
+  if (hub === 'stub') {
+    hubPath = path.join(home, 'hub.mjs');
+    writeFileSync(hubPath, STUB_HUB);
+  }
+  if (hub === 'failing') {
+    hubPath = path.join(home, 'hub.mjs');
+    writeFileSync(hubPath, "console.log('noise'); console.error('boom'); process.exit(3);");
+  }
+  const env = { ...process.env, TASK_TABS_HOME: home, VCHASNO_HUB: hubPath, HUB_LOG: hubLog };
+  const runRaw = (...args) => execFileSync(taskColor, args, { env }).toString();
+  const run = (...args) => runRaw(...args).trim();
+
+  // The hub is called in the background, so wait for the expected number of lines.
+  const hubCalls = (count) => {
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline) {
+      const lines = existsSync(hubLog) ? readFileSync(hubLog, 'utf8').trim().split('\n').filter(Boolean) : [];
+      if (lines.length >= count) return lines;
+      execFileSync('sleep', ['0.05']);
+    }
+    throw new Error(`hub got fewer than ${count} calls`);
+  };
 
   const colors = path.join(home, 'colors');
   // mtime is what marks a reservation as recently used, and a whole test runs
@@ -28,7 +55,7 @@ const withStore = (body) => {
   };
 
   try {
-    body({ run, age, colors });
+    body({ run, runRaw, age, colors, hubCalls });
   } finally {
     rmSync(home, { recursive: true, force: true });
   }
@@ -106,3 +133,40 @@ test('asking about a task keeps it from being the one taken over', () => {
     assert.equal(fresh, given['ACME-1'], 'the next stalest is taken over instead');
   });
 });
+
+test('reports the first assignment, --set and --release to the hub', () => {
+  withStore(({ run, hubCalls }) => {
+    const first = run('--chrome', 'ACME-1');
+    assert.deepEqual(hubCalls(1), [`task-color ACME-1 ${first}`]);
+
+    run('--chrome', 'ACME-1');
+    run('--set', 'red', 'ACME-1');
+    assert.deepEqual(hubCalls(2), [`task-color ACME-1 ${first}`, 'task-color ACME-1 red']);
+
+    run('--release', 'ACME-1');
+    assert.deepEqual(hubCalls(3).at(-1), 'task-color ACME-1 none');
+  });
+});
+
+test('reports a takeover as none for the old task, then the colour for the new one', () => {
+  withStore(({ run, age, hubCalls }) => {
+    const given = fillPalette(run);
+    hubCalls(PALETTE.length);
+    age('ACME-3', 3600);
+
+    run('--chrome', 'ACME-99');
+
+    const lines = hubCalls(PALETTE.length + 2);
+    assert.deepEqual(lines.slice(-2), ['task-color ACME-3 none', `task-color ACME-99 ${given['ACME-3']}`]);
+  });
+});
+
+for (const hub of ['missing', 'failing']) {
+  test(`a ${hub} hub changes neither output nor exit code`, () => {
+    withStore(({ runRaw }) => {
+      assert.equal(runRaw('ACME-1'), 'blue 🟦\n');
+      assert.equal(runRaw('--set', 'red', 'ACME-1'), 'red 🟥\n');
+      assert.equal(runRaw('--release', 'ACME-1'), '');
+    }, { hub });
+  });
+}
