@@ -68,6 +68,7 @@ task-tab --focus add ACME-1234 http://localhost:3000  # ...and jump to it
 task-tab collapse ACME-1234                         # fold it up
 task-tab close ACME-1234                            # close every tab in it
 task-tab site https://acme.atlassian.net            # point the sync at your Jira
+task-tab color-by status                            # colour groups by status, not by task
 ```
 
 Adding a URL already in the group is a no-op instead of opening a duplicate.
@@ -121,10 +122,9 @@ letters of its name:
 |---|---|---|---|---|
 | Backlog | `BL` | | In test | `QA` |
 | Requirements | `REQ` | | Ready for release | `REL` |
-| Ready | `RDY` | | On hold / Blocked | `HOLD` |
-| Ready for dev / To Do | `RDEV` / `TODO` | | Closed / Done | `DONE` |
-| In dev / In progress | `DEV` | | | |
-| On review / In review | `REV` | | | |
+| Ready for dev / To Do | `RDEV` / `TODO` | | Ready (after the release) | `RDY` |
+| In dev / In progress | `DEV` | | Closed / Done | `DONE` |
+| On review / In review | `REV` | | On hold / Blocked | `HOLD` |
 
 Adapting it to another workflow is one edit in `extension/lib/statuses.js`;
 nothing else knows the status names.
@@ -185,6 +185,34 @@ green, purple, yellow, red, grey — in that order, so grey is the last resort.
 Chrome's pink and cyan are skipped: their squares are Unicode 15 and render
 inconsistently in terminals.
 
+### Colour by status instead
+
+The anchor is the default because it keeps the terminal and the browser in
+agreement. If you would rather read the board off the tab strip, switch the
+group colour to follow the status:
+
+```bash
+task-tab color-by status   # every sync recolours the group by its stage
+task-tab color-by task     # back to the task-color anchor
+```
+
+| Prefixes | Colour |
+|---|---|
+| `BL`, `REQ`, `RDEV`, `TODO` | grey |
+| `DEV` | blue |
+| `REV` | purple |
+| `RQA`, `QA` | yellow |
+| `REL`, `RDY`, `DONE` | green |
+| `HOLD` | red |
+| a status not in the map | cyan |
+
+The map is `PREFIX_COLORS` in `extension/lib/statuses.js`. The switch recolours
+every group at once. A group whose title you typed yourself keeps the colour you
+gave it, the same way it keeps its title. With colours by status the browser no
+longer matches the terminal label or the hub: those still show the `task-color`
+anchor. Switching back to `task` leaves the current colours as they are; groups
+opened after that get their anchor colour.
+
 ## Development
 
 ```bash
@@ -206,7 +234,7 @@ Files:
 | `bin/lib/common.sh` | Shared by both CLIs and the installer: state dir, URL encoding |
 | `extension/control.js` | Performs one action per page load, then closes the tab |
 | `extension/sync.js` | Service worker: schedules the sync and wires up the messages |
-| `extension/lib/statuses.js` | The status → prefix map, and nothing else |
+| `extension/lib/statuses.js` | The status → prefix map and the prefix → colour map, nothing else |
 | `extension/lib/titles.js` | Title format, key extraction, title-ownership rule |
 | `extension/lib/plan.js` | Decides which titles to rewrite — pure, no browser APIs |
 | `extension/chrome/` | Thin wrappers over `chrome.*`: groups, focus, storage |

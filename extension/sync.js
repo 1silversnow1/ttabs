@@ -6,7 +6,7 @@
 
 import { trackedGroups } from './chrome/groups.js';
 import { rememberActiveTab, restoreFocus } from './chrome/focus.js';
-import { readSite, readTitles, writeTitles } from './chrome/store.js';
+import { readColorBy, readSite, readTitles, writeTitles } from './chrome/store.js';
 import { planUpdates } from './lib/plan.js';
 import { fetchStatuses } from './providers/jira.js';
 import './panel.js';
@@ -27,10 +27,11 @@ const sync = async () => {
   const keys = [...new Set(tracked.map((t) => t.key))];
   const statuses = await fetchStatuses(site, keys);
   const written = await readTitles();
+  const colorByStatus = (await readColorBy()) === 'status';
 
-  const { updates, titles } = planUpdates(tracked, statuses, written);
-  for (const { groupId, title } of updates) {
-    await chrome.tabGroups.update(groupId, { title });
+  const { updates, titles } = planUpdates(tracked, statuses, written, { colorByStatus });
+  for (const { groupId, ...properties } of updates) {
+    await chrome.tabGroups.update(groupId, properties);
   }
 
   await writeTitles(titles);

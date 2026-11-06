@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert';
 
 import { planUpdates } from '../extension/lib/plan.js';
+import { colorFor } from '../extension/lib/statuses.js';
 
-const group = (id, title) => ({ group: { id, title }, key: title.match(/[A-Z]+-\d+/)[0] });
+const group = (id, title, color) => ({ group: { id, title, color }, key: title.match(/[A-Z]+-\d+/)[0] });
+const byStatus = { colorByStatus: true };
 
 test('rewrites a bare key into a prefixed title', () => {
   const tracked = [group(1, 'ACME-2253')];
@@ -56,4 +58,51 @@ test('keeps updating a fallback prefix it wrote itself', () => {
   const written = { 'ACME-1': 'NEWL|ACME-1' };
   const { updates } = planUpdates(tracked, { 'ACME-1': 'In dev' }, written);
   assert.deepEqual(updates, [{ groupId: 1, title: 'DEV|ACME-1' }]);
+});
+
+test('leaves the colour alone unless asked to colour by status', () => {
+  const tracked = [group(1, 'DEV|ACME-1', 'pink')];
+  const { updates } = planUpdates(tracked, { 'ACME-1': 'In review' }, {});
+  assert.deepEqual(updates, [{ groupId: 1, title: 'REV|ACME-1' }]);
+});
+
+test('colours a group by its status when asked', () => {
+  const tracked = [group(1, 'ACME-1', 'pink')];
+  const { updates } = planUpdates(tracked, { 'ACME-1': 'In dev' }, {}, byStatus);
+  assert.deepEqual(updates, [{ groupId: 1, title: 'DEV|ACME-1', color: 'blue' }]);
+});
+
+test('recolours a group whose title is right but whose colour is not', () => {
+  const tracked = [group(1, 'REV|ACME-1', 'green')];
+  const { updates } = planUpdates(tracked, { 'ACME-1': 'In review' }, {}, byStatus);
+  assert.deepEqual(updates, [{ groupId: 1, title: 'REV|ACME-1', color: 'purple' }]);
+});
+
+test('leaves a group whose title and colour both match its status', () => {
+  const tracked = [group(1, 'REV|ACME-1', 'purple')];
+  const { updates } = planUpdates(tracked, { 'ACME-1': 'In review' }, {}, byStatus);
+  assert.deepEqual(updates, []);
+});
+
+test('keeps the colour of a group the user renamed', () => {
+  const tracked = [{ group: { id: 1, title: '[1] ACME-1', color: 'pink' }, key: 'ACME-1' }];
+  const { updates } = planUpdates(tracked, { 'ACME-1': 'In dev' }, {}, byStatus);
+  assert.deepEqual(updates, []);
+});
+
+test('gives every stage of the board its own colour', () => {
+  assert.equal(colorFor('Backlog'), 'grey');
+  assert.equal(colorFor('Ready for dev'), 'grey');
+  assert.equal(colorFor('In progress'), 'blue');
+  assert.equal(colorFor('On review'), 'purple');
+  assert.equal(colorFor('Ready for test'), 'yellow');
+  assert.equal(colorFor('In test'), 'yellow');
+  assert.equal(colorFor('Ready for release'), 'green');
+  assert.equal(colorFor('Ready'), 'green');
+  assert.equal(colorFor('Closed'), 'green');
+  assert.equal(colorFor('Blocked'), 'red');
+});
+
+test('marks a status nobody mapped with a colour of its own', () => {
+  assert.equal(colorFor('Waiting for design'), 'cyan');
 });

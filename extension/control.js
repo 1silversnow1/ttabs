@@ -4,7 +4,7 @@
 // nothing else in the extension has to know about it.
 
 import { findGroup } from './chrome/groups.js';
-import { writeSite } from './chrome/store.js';
+import { COLOR_BY_VALUES, writeColorBy, writeSite } from './chrome/store.js';
 import { pickPartner, rightHalf } from './lib/split.js';
 
 // Chrome's own enum, used to reject a bad `--color` before it throws inside
@@ -113,6 +113,17 @@ const ACTIONS = {
   config: {
     required: ['site'],
     run: (p) => writeSite(p.get('site')),
+  },
+  // Recolours every group right away, rather than leaving the switch invisible
+  // until the next alarm.
+  colorBy: {
+    required: ['by'],
+    run: async (p) => {
+      const by = p.get('by');
+      if (!COLOR_BY_VALUES.includes(by)) return;
+      await writeColorBy(by);
+      await chrome.runtime.sendMessage({ type: 'sync' }).catch(() => {});
+    },
   },
 };
 

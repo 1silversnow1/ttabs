@@ -69,6 +69,7 @@ task-tab --focus add ACME-1234 http://localhost:3000  # ...and jump to it
 task-tab collapse ACME-1234                         # fold it up
 task-tab close ACME-1234                            # close every tab in it
 task-tab site https://acme.atlassian.net            # point the sync at your Jira
+task-tab color-by status                            # колір групи за статусом, а не за задачею
 ```
 
 Додавання URL, який уже є в групі, нічого не робить замість того, щоб відкрити
@@ -124,10 +125,9 @@ Service worker оновлює назву кожної групи кожні п'�
 |---|---|---|---|---|
 | Backlog | `BL` | | In test | `QA` |
 | Requirements | `REQ` | | Ready for release | `REL` |
-| Ready | `RDY` | | On hold / Blocked | `HOLD` |
-| Ready for dev / To Do | `RDEV` / `TODO` | | Closed / Done | `DONE` |
-| In dev / In progress | `DEV` | | | |
-| On review / In review | `REV` | | | |
+| Ready for dev / To Do | `RDEV` / `TODO` | | Ready (після релізу) | `RDY` |
+| In dev / In progress | `DEV` | | Closed / Done | `DONE` |
+| On review / In review | `REV` | | On hold / Blocked | `HOLD` |
 
 Пристосувати це до іншого процесу — одна правка в `extension/lib/statuses.js`;
 більше ніде назви статусів не відомі.
@@ -191,6 +191,34 @@ Chrome, які групи ще існують, тому кожне читанн�
 тож grey лишається на крайній випадок. Pink і cyan із Chrome пропущені: їхні
 квадрати з Unicode 15 і в терміналах відображаються по-різному.
 
+### Колір за статусом замість прив'язки
+
+Прив'язка стоїть за замовчуванням, бо тримає термінал і браузер в одному
+кольорі. Якщо вам зручніше читати дошку просто зі смуги вкладок, перемкніть
+колір групи на статус:
+
+```bash
+task-tab color-by status   # кожна синхронізація перефарбовує групу за етапом
+task-tab color-by task     # назад до прив'язки task-color
+```
+
+| Префікси | Колір |
+|---|---|
+| `BL`, `REQ`, `RDEV`, `TODO` | сірий |
+| `DEV` | синій |
+| `REV` | фіолетовий |
+| `RQA`, `QA` | жовтий |
+| `REL`, `RDY`, `DONE` | зелений |
+| `HOLD` | червоний |
+| статус, якого немає в мапі | блакитний |
+
+Мапа — `PREFIX_COLORS` в `extension/lib/statuses.js`. Перемикач одразу
+перефарбовує всі групи. Група, назву якої ви написали самі, зберігає й колір,
+який ви їй дали, так само як назву. Коли колір іде за статусом, браузер більше не
+збігається з підписом у терміналі й у хабі: там лишається колір прив'язки
+`task-color`. Після повернення до `task` поточні кольори лишаються як є, а групи,
+відкриті після цього, отримують колір прив'язки.
+
 ## Розробка
 
 ```bash
@@ -212,7 +240,7 @@ npm test        # node:test over extension/lib, plus task-color end to end
 | `bin/lib/common.sh` | Спільне для обох CLI та інсталятора: каталог стану, кодування URL |
 | `extension/control.js` | Виконує одну дію на завантаження сторінки, тоді закриває вкладку |
 | `extension/sync.js` | Service worker: планує синхронізацію і зв'язує повідомлення |
-| `extension/lib/statuses.js` | Відповідність статус → префікс, і більше нічого |
+| `extension/lib/statuses.js` | Відповідності статус → префікс і префікс → колір, і більше нічого |
 | `extension/lib/titles.js` | Формат назви, виділення ключа, правило власності на назву |
 | `extension/lib/plan.js` | Вирішує, які назви переписати — чиста логіка, без браузерних API |
 | `extension/chrome/` | Тонкі обгортки над `chrome.*`: групи, фокус, сховище |
