@@ -114,6 +114,12 @@ const ACTIONS = {
     required: ['site'],
     run: (p) => writeSite(p.get('site')),
   },
+  // For a caller that has just moved a task in the tracker: the group's prefix
+  // follows now instead of at the next alarm, up to five minutes away.
+  sync: {
+    required: [],
+    run: () => chrome.runtime.sendMessage({ type: 'sync' }).catch(() => {}),
+  },
 };
 
 const run = async () => {

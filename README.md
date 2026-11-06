@@ -68,6 +68,7 @@ task-tab --focus add ACME-1234 http://localhost:3000  # ...and jump to it
 task-tab collapse ACME-1234                         # fold it up
 task-tab close ACME-1234                            # close every tab in it
 task-tab site https://acme.atlassian.net            # point the sync at your Jira
+task-tab sync                                       # re-read every status now, without waiting for the alarm
 ```
 
 Adding a URL already in the group is a no-op instead of opening a duplicate.
@@ -105,7 +106,9 @@ commands in a row.
 ## The status prefix
 
 The service worker refreshes every group's title every five minutes, on browser
-start, and immediately after `task-tab add`. It collects the task keys from the
+start, immediately after `task-tab add`, and whenever `task-tab sync` asks. A
+script that has just moved a task in Jira calls `task-tab sync`, so the prefix
+follows at once instead of up to five minutes later. It collects the task keys from the
 tab groups themselves, asks Jira for their statuses in one JQL request, and
 rewrites only the titles that changed.
 

@@ -8,6 +8,7 @@
 #   task-tab close ACME-1234
 #   task-tab collapse ACME-1234
 #   task-tab site https://acme.atlassian.net
+#   task-tab sync                       # refresh every group's status now
 #
 # Nothing steals focus unless --focus is given: tabs appear in the background and
 # the tab you were reading stays selected.
@@ -80,8 +81,12 @@ case "$action" in
             echo "usage: --split and --split-with apply to add only" >&2; exit 2
         fi
         [ -n "$group" ] || { echo "usage: task-tab site <https://your.atlassian.net>" >&2; exit 2; } ;;
+    sync)
+        if [ -n "$split$split_with" ]; then
+            echo "usage: --split and --split-with apply to add only" >&2; exit 2
+        fi ;;
     *)
-        echo "usage: task-tab [--color <name>] [--focus] [--split | --split-with <url-prefix>] <add|close|collapse|site> <group|url> [url]" >&2; exit 2 ;;
+        echo "usage: task-tab [--color <name>] [--focus] [--split | --split-with <url-prefix>] <add|close|collapse|site|sync> [group|url] [url]" >&2; exit 2 ;;
 esac
 
 id_file="$state_dir/extension-id"
@@ -93,6 +98,11 @@ ext_id="$(tr -d '[:space:]' < "$id_file")"
 if [ "$action" = "site" ]; then
     control="chrome-extension://$ext_id/control.html?action=config&site=$(encode "$group")"
     open -g -a "Google Chrome" "$control" >/dev/null 2>&1 || exit 0
+    exit 0
+fi
+
+if [ "$action" = "sync" ]; then
+    open -g -a "Google Chrome" "chrome-extension://$ext_id/control.html?action=sync" >/dev/null 2>&1 || exit 0
     exit 0
 fi
 
