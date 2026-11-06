@@ -4,7 +4,7 @@
 // nothing else in the extension has to know about it.
 
 import { findGroup } from './chrome/groups.js';
-import { writeSite } from './chrome/store.js';
+import { writeSite, writeSortGroups } from './chrome/store.js';
 import { pickPartner, rightHalf } from './lib/split.js';
 
 // Chrome's own enum, used to reject a bad `--color` before it throws inside
@@ -113,6 +113,16 @@ const ACTIONS = {
   config: {
     required: ['site'],
     run: (p) => writeSite(p.get('site')),
+  },
+  // Turning the sort on lines the groups up right away, rather than at the next
+  // status change.
+  sort: {
+    required: ['sort'],
+    run: async (p) => {
+      const on = p.get('sort') === 'on';
+      await writeSortGroups(on);
+      if (on) await chrome.runtime.sendMessage({ type: 'sync', reorder: true }).catch(() => {});
+    },
   },
 };
 

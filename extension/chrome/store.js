@@ -3,6 +3,7 @@
 const SITE = 'site';
 const TITLES = 'titles';
 const ACTIVE_TABS = 'lastActiveTabs';
+const SORT_GROUPS = 'sortGroups';
 
 export const readSite = async () => {
   const stored = await chrome.storage.local.get(SITE);
@@ -22,6 +23,17 @@ export const readTitles = async () => {
 
 export const writeTitles = async (titles) => {
   await chrome.storage.local.set({ [TITLES]: titles });
+};
+
+// Off unless `task-tab sort on` asked for it: moving groups the user arranged
+// by hand is not something to do by default.
+export const readSortGroups = async () => {
+  const stored = await chrome.storage.local.get(SORT_GROUPS);
+  return stored[SORT_GROUPS] === true;
+};
+
+export const writeSortGroups = async (on) => {
+  await chrome.storage.local.set({ [SORT_GROUPS]: on });
 };
 
 // Session-scoped: which tab the user was looking at in each window. Nothing to

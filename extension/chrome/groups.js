@@ -16,3 +16,21 @@ export const findGroup = async (key) => {
   const tracked = await trackedGroups();
   return tracked.find((t) => t.key === key)?.group ?? null;
 };
+
+// Where each group starts and how many tabs it holds, by group id. Chrome keeps
+// a group's tabs contiguous, so the first index and the count are its span.
+export const groupSpans = async () => {
+  const tabs = await chrome.tabs.query({});
+  const spans = new Map();
+  for (const tab of tabs) {
+    if (tab.groupId === chrome.tabGroups.TAB_GROUP_ID_NONE) continue;
+    const span = spans.get(tab.groupId);
+    if (span) {
+      span.index = Math.min(span.index, tab.index);
+      span.size += 1;
+    } else {
+      spans.set(tab.groupId, { index: tab.index, size: 1 });
+    }
+  }
+  return spans;
+};

@@ -69,6 +69,7 @@ task-tab --focus add ACME-1234 http://localhost:3000  # ...and jump to it
 task-tab collapse ACME-1234                         # fold it up
 task-tab close ACME-1234                            # close every tab in it
 task-tab site https://acme.atlassian.net            # point the sync at your Jira
+task-tab sort on                                    # тримати групи в порядку дошки
 ```
 
 Додавання URL, який уже є в групі, нічого не робить замість того, щоб відкрити
@@ -124,10 +125,9 @@ Service worker оновлює назву кожної групи кожні п'�
 |---|---|---|---|---|
 | Backlog | `BL` | | In test | `QA` |
 | Requirements | `REQ` | | Ready for release | `REL` |
-| Ready | `RDY` | | On hold / Blocked | `HOLD` |
-| Ready for dev / To Do | `RDEV` / `TODO` | | Closed / Done | `DONE` |
-| In dev / In progress | `DEV` | | | |
-| On review / In review | `REV` | | | |
+| Ready for dev / To Do | `RDEV` / `TODO` | | Ready (після релізу) | `RDY` |
+| In dev / In progress | `DEV` | | Closed / Done | `DONE` |
+| On review / In review | `REV` | | On hold / Blocked | `HOLD` |
 
 Пристосувати це до іншого процесу — одна правка в `extension/lib/statuses.js`;
 більше ніде назви статусів не відомі.
@@ -153,6 +153,29 @@ Service worker оновлює назву кожної групи кожні п'�
 (`design work`) — і група стане невидимою для CLI: наступний `task-tab add`
 побудує поруч другу групу, а не візьме цю. Якщо в назві два ключі, виграє той,
 що лівіше.
+
+### Групи в порядку дошки
+
+Коли відкрито багато задач, смугу вкладок легше читати, якщо вона йде як дошка.
+`task-tab sort on` тримає її в такому порядку:
+
+```bash
+task-tab sort on    # вишикувати групи зараз і знову після кожної зміни
+task-tab sort off   # лишати групи там, де вони є (за замовчуванням)
+```
+
+Порядок — колонки дошки зліва направо: `BL`, `REQ`, `RDEV`, `TODO`, `DEV`, `REV`,
+`RQA`, `QA`, `REL`, `RDY`, `DONE`, `HOLD`. Статус, якого немає в цьому списку,
+стає після всіх. Список — `STAGE_ORDER` в `extension/lib/statuses.js`.
+
+- Групи рухаються лише тоді, коли синхронізація змінює назву: нова задача
+  отримує префікс або задача змінює статус. Групу, яку ви перетягли руками,
+  до того часу ніхто не чіпає.
+- Групи з однієї колонки зберігають свій порядок.
+- Групи шикуються від місця, де стоїть перша з них. Вкладка поза групами, що
+  стояла між двома групами, опиняється після них.
+- Групу, назву якої ви написали самі, теж сортують — за статусом, який Jira
+  повертає для її ключа. Кожне вікно сортується окремо.
 
 ## Колірна прив'язка
 
@@ -215,6 +238,7 @@ npm test        # node:test over extension/lib, plus task-color end to end
 | `extension/lib/statuses.js` | Відповідність статус → префікс, і більше нічого |
 | `extension/lib/titles.js` | Формат назви, виділення ключа, правило власності на назву |
 | `extension/lib/plan.js` | Вирішує, які назви переписати — чиста логіка, без браузерних API |
+| `extension/lib/order.js` | Вирішує, де стоїть кожна група в порядку дошки — чиста логіка, без браузерних API |
 | `extension/chrome/` | Тонкі обгортки над `chrome.*`: групи, фокус, сховище |
 | `extension/providers/jira.js` | Єдиний файл, який знає API Jira |
 | `install.sh` | Робить симлінки CLI, визначає id розширення, задає сайт Jira |

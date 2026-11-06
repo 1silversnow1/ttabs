@@ -68,6 +68,7 @@ task-tab --focus add ACME-1234 http://localhost:3000  # ...and jump to it
 task-tab collapse ACME-1234                         # fold it up
 task-tab close ACME-1234                            # close every tab in it
 task-tab site https://acme.atlassian.net            # point the sync at your Jira
+task-tab sort on                                    # keep groups in board order
 ```
 
 Adding a URL already in the group is a no-op instead of opening a duplicate.
@@ -121,10 +122,9 @@ letters of its name:
 |---|---|---|---|---|
 | Backlog | `BL` | | In test | `QA` |
 | Requirements | `REQ` | | Ready for release | `REL` |
-| Ready | `RDY` | | On hold / Blocked | `HOLD` |
-| Ready for dev / To Do | `RDEV` / `TODO` | | Closed / Done | `DONE` |
-| In dev / In progress | `DEV` | | | |
-| On review / In review | `REV` | | | |
+| Ready for dev / To Do | `RDEV` / `TODO` | | Ready (after the release) | `RDY` |
+| In dev / In progress | `DEV` | | Closed / Done | `DONE` |
+| On review / In review | `REV` | | On hold / Blocked | `HOLD` |
 
 Adapting it to another workflow is one edit in `extension/lib/statuses.js`;
 nothing else knows the status names.
@@ -148,6 +148,29 @@ to `ACME-261`, so `task-tab add`, `close` and `collapse` keep reaching them. Dro
 the key (`design work`) and the group becomes invisible to the CLI: the next
 `task-tab add` will build a second group beside it rather than adopt it. When a
 title carries two keys, the leftmost one wins.
+
+### Groups in board order
+
+With many tasks open, the strip is easier to read when it runs like the board.
+`task-tab sort on` keeps it that way:
+
+```bash
+task-tab sort on    # line the groups up now, and again on every change
+task-tab sort off   # leave the groups where they are (default)
+```
+
+The order is the board's columns, left to right: `BL`, `REQ`, `RDEV`, `TODO`,
+`DEV`, `REV`, `RQA`, `QA`, `REL`, `RDY`, `DONE`, `HOLD`. A status not in that list
+goes after all of them. It is `STAGE_ORDER` in `extension/lib/statuses.js`.
+
+- The groups move only when a sync changes a title: a new task gets its prefix,
+  or a task changes status. A group you dragged by hand stays where you put it
+  until then.
+- Groups in the same column keep the order they were in.
+- The groups line up from where the first of them stands. A tab outside any
+  group that sat between two groups ends up after them.
+- A group whose title you typed yourself is sorted too, by the status Jira
+  returns for its key. Each window is sorted on its own.
 
 ## The colour anchor
 
@@ -209,6 +232,7 @@ Files:
 | `extension/lib/statuses.js` | The status → prefix map, and nothing else |
 | `extension/lib/titles.js` | Title format, key extraction, title-ownership rule |
 | `extension/lib/plan.js` | Decides which titles to rewrite — pure, no browser APIs |
+| `extension/lib/order.js` | Decides where each group goes in board order — pure, no browser APIs |
 | `extension/chrome/` | Thin wrappers over `chrome.*`: groups, focus, storage |
 | `extension/providers/jira.js` | The only file that knows Jira's API |
 | `install.sh` | Links the CLI, resolves the extension id, sets the Jira site |

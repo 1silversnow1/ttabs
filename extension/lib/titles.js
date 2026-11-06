@@ -18,6 +18,13 @@ const KEY_PATTERN = /([A-Z][A-Z0-9]*-\d+|v\d{4}\.\d{2}\.\d{2}\.\d{2})/;
 
 export const keyFromTitle = (title) => title.match(KEY_PATTERN)?.[1] ?? null;
 
+// The part before the separator, whatever it is — "DEV" for "DEV|ACME-1", null
+// for a title with no separator at all.
+export const prefixOf = (title) => {
+  const separatorAt = title.indexOf(SEPARATOR);
+  return separatorAt < 0 ? null : title.slice(0, separatorAt);
+};
+
 export const titleFor = (key, status) => `${abbreviate(status)}${SEPARATOR}${key}`;
 
 // A title the user typed themselves ("[1] ACME-2261") is theirs to keep — the
